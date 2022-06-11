@@ -72,6 +72,7 @@ class HamlibTransceiver final
   bool do_pwr_;
   bool do_pwr2_;
   bool do_swr_;
+  bool do_alc_;
   bool tickle_hamlib_;          // Hamlib requires a
                                 // rig_set_split_vfo() call to
   JTDXDateTime * m_jtdxtime;                                // establish the Tx VFO

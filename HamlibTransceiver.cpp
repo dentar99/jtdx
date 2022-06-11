@@ -203,6 +203,7 @@ HamlibTransceiver::HamlibTransceiver (TransceiverFactory::PTTMethod ptt_type, QS
   , do_pwr_ {false}
   , do_pwr2_ {false}
   , do_swr_ {false}
+  , do_alc_ {false}
   , tickle_hamlib_ {false}
   , m_jtdxtime {nullptr}
   , get_vfo_works_ {true}
@@ -288,6 +289,7 @@ HamlibTransceiver::HamlibTransceiver (unsigned model_number, TransceiverFactory:
   , do_pwr_ {false}
   , do_pwr2_ {false}
   , do_swr_ {false}
+  , do_alc_ {false}
   , tickle_hamlib_ {false}
   , m_jtdxtime {nullptr}
   , get_vfo_works_ {true}
@@ -308,7 +310,7 @@ HamlibTransceiver::HamlibTransceiver (unsigned model_number, TransceiverFactory:
       if (params.poll_interval & rig__power) { set_conf ("auto_power_on","1"); }
       if (params.poll_interval & rig__power_off) { set_conf ("auto_power_off","1"); }
       if (params.poll_interval & do__snr) do_snr_ = true;
-      if (params.poll_interval & do__pwr) { do_pwr_ = true; do_pwr2_ = true; do_swr_ = true;}
+      if (params.poll_interval & do__pwr) { do_pwr_ = true; do_pwr2_ = true; do_swr_ = true; do_alc_ = true; }
       
       switch (rig_get_caps_int (model_, RIG_CAPS_PORT_TYPE))
         {
@@ -502,13 +504,14 @@ m_jtdxtime = jtdxtime;
   do_pwr_ &= (!is_dummy_ && rig_get_function_ptr (model_, RIG_FUNCTION_GET_LEVEL) && (rig_get_caps_int (model_, RIG_CAPS_HAS_GET_LEVEL) & RIG_LEVEL_RFPOWER_METER_WATTS) == RIG_LEVEL_RFPOWER_METER_WATTS);
   do_pwr2_ &= (!is_dummy_ && rig_get_function_ptr (model_, RIG_FUNCTION_GET_LEVEL) && (rig_get_caps_int (model_, RIG_CAPS_HAS_GET_LEVEL) & RIG_LEVEL_RFPOWER) == RIG_LEVEL_RFPOWER);
   do_swr_ &= (!is_dummy_ && rig_get_function_ptr (model_, RIG_FUNCTION_GET_LEVEL) && (rig_get_caps_int (model_, RIG_CAPS_HAS_GET_LEVEL) & RIG_LEVEL_SWR) == RIG_LEVEL_SWR);
+  do_alc_ &= (!is_dummy_ && rig_get_function_ptr (model_, RIG_FUNCTION_GET_LEVEL) && (rig_get_caps_int (model_, RIG_CAPS_HAS_GET_LEVEL) & RIG_LEVEL_ALC) == RIG_LEVEL_ALC);
   tickle_hamlib_ = false;
   get_vfo_works_ = true;
   set_vfo_works_ = true;
 //printf("rig id %d do_snr_ %d caps %llx do_pwr_ %d do_pwr2_ %d\n",model_,do_snr_,rig_get_caps_int (model_, RIG_CAPS_HAS_GET_LEVEL),do_pwr_,do_pwr2_);
 #if JTDX_DEBUG_TO_FILE
   pFile = fopen (debug_file_.c_str(),"a");
-  fprintf(pFile,"%s Transceiver rig id %d do_snr_ %d caps %llx do_pwr_ %d do_pwr2_ %d do_swr %d opened\n",m_jtdxtime->currentDateTimeUtc2().toString("hh:mm:ss.zzz").toStdString().c_str(),model_,do_snr_,rig_get_caps_int (model_, RIG_CAPS_HAS_GET_LEVEL),do_pwr_,do_pwr2_,do_swr_);
+  fprintf(pFile,"%s Transceiver rig id %d do_snr_ %d caps %llx do_pwr_ %d do_pwr2_ %d do_swr %d do_alc %d opened\n",m_jtdxtime->currentDateTimeUtc2().toString("hh:mm:ss.zzz").toStdString().c_str(),model_,do_snr_,rig_get_caps_int (model_, RIG_CAPS_HAS_GET_LEVEL),do_pwr_,do_pwr2_,do_swr_,do_alc_);
   fclose (pFile);
 #endif
 //  QThread::msleep (50);
@@ -1225,6 +1228,7 @@ void HamlibTransceiver::do_poll ()
       if (!ptt_on_) {
           update_power (0);
           update_swr (0);
+          update_alc (0);
           if (do_snr_) {
               rc = rig_get_level (rig_.data (), RIG_VFO_CURR, RIG_LEVEL_STRENGTH, &strength);
               if (RIG_OK == rc) {
@@ -1285,6 +1289,29 @@ void HamlibTransceiver::do_poll ()
                     fclose (pFile);
 #endif
                     update_swr (0);
+                  }
+              }
+              if (do_alc_) {
+                  rc = rig_get_level (rig_.data (), RIG_VFO_CURR, RIG_LEVEL_ALC, &strength);
+                  if (RIG_OK == rc) {
+#if JTDX_DEBUG_TO_FILE
+                    pFile = fopen (debug_file_.c_str(),"a");
+                    fprintf(pFile,"%s get alc ALC %.3f\n",m_jtdxtime->currentDateTimeUtc2().toString("hh:mm:ss.zzz").toStdString().c_str(),strength.f);
+                    fclose (pFile);
+#endif
+//                    printf ("SWR %.3f\n",strength.f);
+                    if (strength.f >= 0)
+                      update_alc (strength.f*100);
+                    else
+                      update_alc (0);
+                  } else {
+                    TRACE_CAT_POLL ("HamlibTransceiver", "rig_get_level RIG_LEVEL_ALC failed with rc:" << rc << "ignoring");
+#if JTDX_DEBUG_TO_FILE
+                    pFile = fopen (debug_file_.c_str(),"a");
+                    fprintf(pFile,"%s get alc ALC failed %d\n",m_jtdxtime->currentDateTimeUtc2().toString("hh:mm:ss.zzz").toStdString().c_str(),rc);
+                    fclose (pFile);
+#endif
+                    update_alc (0);
                   }
               }
           }

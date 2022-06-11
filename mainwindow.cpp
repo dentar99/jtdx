@@ -2107,7 +2107,7 @@ void MainWindow::on_actionSettings_triggered()               //Setup Dialog
       }
       if(!m_config.do_snr()) ui->S_meter_button->setText(tr("S meter"));
       ui->S_meter_button->setEnabled(m_config.do_snr());
-      if(!m_config.do_pwr()) {ui->PWRlabel->setText(tr("Pwr")); ui->SWRlabel->setText("");}
+      if(!m_config.do_pwr()) {ui->PWRlabel->setText(tr("Pwr")); ui->SWRlabel->setText(""); ui->ALClabel->setText("");}
       on_spotLineEdit_textChanged(ui->spotLineEdit->text());
       ui->bandComboBox->setCurrentText (m_config.bands ()->find (m_freqNominal));
   }
@@ -7138,6 +7138,15 @@ void MainWindow::handle_transceiver_update (Transceiver::TransceiverState const&
         if (s.swr()<1000) ui->SWRlabel->setText(QString {"swr%1"}.arg (s.swr()/100.,0,'f',2)); else ui->SWRlabel->setText(QString {"swr%1"}.arg (s.swr()/100.,0,'f',1));}
       else
         ui->SWRlabel->setText("");
+    }
+
+    /* alc 0 is "normal" so have to use swr flag to help determine when transmitting */
+    if (m_rigState.alc() != s.alc() || m_rigState.swr() != s.swr()) {
+      if (s.swr() > 0) { /* swr > 0 means transmitting */
+        if (s.alc()<1000) ui->ALClabel->setText(QString {"alc%1"}.arg (s.alc()/100.,0,'f',2)); 
+	             else ui->ALClabel->setText(QString {"alc%1"}.arg (s.alc()/100.,0,'f',1));}
+      else
+        ui->ALClabel->setText("");
     }
   }    
   m_rigState = s;

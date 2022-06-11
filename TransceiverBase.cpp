@@ -638,6 +638,12 @@ void TransceiverBase::update_swr (unsigned int p)
 //  requested_.swr (p);    // track rig changes
 }
 
+void TransceiverBase::update_alc (unsigned int p)
+{
+  actual_.alc (p);
+//  requested_.alc (p);    // track rig changes
+}
+
 void TransceiverBase::update_complete (bool force_signal)
 {
   if ((do_pre_update () && actual_ != last_) || force_signal)
