@@ -83,7 +83,7 @@ project's git repository.
 
 $ mkdir -p ~/jtdx-prefix/build
 $ cd ~/jtdx-prefix
-$ git clone git://git.code.sf.net/p/jtdx/code src
+$ git clone https://github.com/dentar99/jtdx.git src
 
 
 To build JTDX you will need CMake and asciidoc installed.
@@ -329,7 +329,7 @@ First fetch the source from the repository:
 
 $ mkdir -p ~/jtdx-prefix/build
 $ cd ~/jtdx-prefix
-$ git clone git://git.code.sf.net/p/jtdx/code src
+$ git clone https://github.com/dentar99/jtdx.git src
 
 this links to the Git repository in a read-only fashion, if you
 intend to  contribute to the project  then you probably want  to get a
